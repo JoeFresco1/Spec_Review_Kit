@@ -1,0 +1,6 @@
+﻿feature_id,area,feature,Jane Smith decision,Jane Smith comment,Omar Reyes decision,Omar Reyes comment
+routing.assignment,Case Routing,Automatic Assignment,Need this,This needs supervisor override.,Nice to have,Prefer manual assignment for complex cases.
+routing.override,Case Routing,Manual Override,,,Need this,
+routing.escalation,Case Routing,Escalation Rules,Needs discussion,Need to confirm with operations.,Needs discussion,Who owns escalation after hours?
+reporting.dashboard,Reporting,Dashboard,Nice to have,Would like a per-team view.,Don't need,We already cover this in the BI tool.
+reporting.exports,Reporting,Scheduled Exports,Later,,Need this,Daily export is critical.

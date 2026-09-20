@@ -1,0 +1,30 @@
+{
+  "schema": "spec-review-feedback-1",
+  "reviewer": "Omar Reyes",
+  "project": "Case Management Platform",
+  "reviewed_version": "93e8c620c1",
+  "counts": { "need": 2, "nice": 1, "no": 1, "discussion": 1 },
+  "feedback": {
+    "routing.assignment": {
+      "decision": "nice",
+      "comment": "Prefer manual assignment for complex cases."
+    },
+    "routing.override": {
+      "decision": "need",
+      "comment": ""
+    },
+    "routing.escalation": {
+      "decision": "discussion",
+      "comment": "Who owns escalation after hours?"
+    },
+    "reporting.dashboard": {
+      "decision": "no",
+      "comment": "We already cover this in the BI tool."
+    },
+    "reporting.exports": {
+      "decision": "need",
+      "comment": "Daily export is critical."
+    }
+  },
+  "unreviewed": []
+}

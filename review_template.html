@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Review</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #d8dee4;
+    --text: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --need: #1a7f37;
+    --nice: #0969da;
+    --later: #9a6700;
+    --no: #6e7781;
+    --discussion: #8250df;
+    --none: #8c959f;
+    --radius: 8px;
+    --shadow: 0 1px 2px rgba(31, 35, 40, 0.06);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+  }
+  b { font-weight: 600; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { margin: 0; font-size: 20px; line-height: 1.2; }
+  .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .topbar-right { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+  .progress { min-width: 220px; }
+  .progress-line { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .progress-line b { color: var(--text); }
+  .version { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+  .progress-track { height: 6px; border-radius: 3px; background: #eaeef2; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.2s ease; }
+  .reviewer-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  .reviewer-field input {
+    font: inherit;
+    color: var(--text);
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    min-width: 200px;
+  }
+  .reviewer-field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+  /* ---------- layout ---------- */
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .sidebar {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .sidebar-tools { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid var(--border); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .check input { accent-color: var(--accent); }
+  #tree { padding: 8px; }
+  .tree-area { margin-bottom: 4px; }
+  .tree-area-row { display: flex; align-items: center; gap: 6px; padding: 6px 4px 6px 0; }
+  .caret {
+    border: 0; background: transparent; cursor: pointer; color: var(--muted);
+    font-size: 11px; width: 20px; height: 20px; border-radius: 4px; flex: none;
+  }
+  .caret:hover { background: #eaeef2; }
+  .area-title { font-weight: 600; font-size: 13px; flex: 1; }
+  .area-progress { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tree-feature {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--muted);
+    padding: 6px 8px 6px 26px; border-radius: 6px; font-size: 14px;
+  }
+  .tree-feature:hover { background: #eaeef2; color: var(--text); }
+  .tree-feature.selected { background: #ddf4ff; color: var(--text); font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--none); flex: none; }
+  .dot.d-need { background: var(--need); border-color: var(--need); }
+  .dot.d-nice { background: var(--nice); border-color: var(--nice); }
+  .dot.d-later { background: var(--later); border-color: var(--later); }
+  .dot.d-no { background: var(--no); border-color: var(--no); }
+  .dot.d-discussion { background: var(--discussion); border-color: var(--discussion); }
+  .dot.d-no_opinion { background: #eaeef2; border-color: var(--none); }
+  .tree-empty { padding: 12px; font-size: 13px; color: var(--muted); }
+
+  /* ---------- detail panel ---------- */
+  .detail {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    min-height: 320px;
+  }
+  .crumb { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .node-title { margin: 6px 0 2px; font-size: 24px; line-height: 1.25; }
+  .node-id { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .summary { color: var(--text); font-size: 16px; max-width: 70ch; }
+  .placeholder { color: var(--muted); }
+  .status-line { margin: 12px 0 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+  .clear-status { border: 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; font-size: 13px; padding: 0; text-decoration: underline; }
+
+  .decision-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+  .decision-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+    border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .decision-btn:hover { border-color: var(--muted); }
+  .decision-btn .symbol { color: var(--none); font-size: 14px; }
+  .decision-btn.active.d-need { background: var(--need); border-color: var(--need); color: #fff; }
+  .decision-btn.active.d-nice { background: var(--nice); border-color: var(--nice); color: #fff; }
+  .decision-btn.active.d-later { background: var(--later); border-color: var(--later); color: #fff; }
+  .decision-btn.active.d-no { background: var(--no); border-color: var(--no); color: #fff; }
+  .decision-btn.active.d-discussion { background: var(--discussion); border-color: var(--discussion); color: #fff; }
+  .decision-btn.active .symbol { color: inherit; }
+
+  .comment-label { display: block; margin-top: 20px; font-size: 13px; font-weight: 600; }
+  .comment-box {
+    display: block; width: 100%; max-width: 70ch; min-height: 84px; resize: vertical;
+    margin-top: 6px; padding: 10px 12px; font: inherit; font-size: 14px; color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  .comment-box:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+  .feature-list { margin: 16px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+  .feature-link {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    border: 1px solid var(--border); background: #fff; border-radius: 6px;
+    padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer; color: var(--text);
+  }
+  .feature-link:hover { border-color: var(--accent); }
+
+  details.spec-details { margin-top: 24px; max-width: 78ch; }
+  details.spec-details summary {
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent);
+    list-style: none; user-select: none;
+  }
+  details.spec-details summary::-webkit-details-marker { display: none; }
+  details.spec-details summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform 0.15s ease; }
+  details.spec-details[open] summary::before { transform: rotate(90deg); }
+  .details-body {
+    margin-top: 12px; padding: 16px 20px; background: #f6f8fa;
+    border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px;
+  }
+  .details-body h4 { margin: 18px 0 6px; font-size: 14px; }
+  .details-body h4:first-child { margin-top: 0; }
+  .details-body h5, .details-body h6 { margin: 14px 0 4px; font-size: 13px; }
+  .details-body p { margin: 8px 0; }
+  .details-body ul, .details-body ol { margin: 8px 0; padding-left: 22px; }
+  .details-body li { margin: 4px 0; }
+  .details-body pre { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow: auto; font-size: 13px; }
+  .details-body code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; background: #eff2f5; padding: 1px 4px; border-radius: 4px; }
+  .details-body pre code { background: transparent; padding: 0; }
+  .details-body blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--border); color: var(--muted); }
+
+  /* ---------- footer ---------- */
+  .footer {
+    position: sticky; bottom: 0; z-index: 5;
+    display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
+    padding: 12px 24px; background: var(--panel); border-top: 1px solid var(--border);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+  .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .footer button {
+    font: inherit; font-size: 13px; border-radius: 6px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+  }
+  .footer button:hover { border-color: var(--muted); }
+  .footer button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .footer button.primary:hover { background: #0b5cad; }
+  .footer button.danger:hover { border-color: #cf222e; color: #cf222e; }
+  .hint { width: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; padding: 12px; }
+    .sidebar { position: static; max-height: none; }
+    .topbar { padding: 12px 16px; }
+    .footer { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1 id="project-title">Spec Review</h1>
+    <p id="project-subtitle" class="subtitle"></p>
+  </div>
+  <div class="topbar-right">
+    <div class="progress">
+      <div class="progress-line">
+        <span id="progress-text"></span>
+        <span id="version-text" class="version"></span>
+      </div>
+      <div class="progress-track" role="progressbar" aria-label="Review progress">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+    <label class="reviewer-field">Your name
+      <input id="reviewer-name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
+    </label>
+  </div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <div class="sidebar-tools">
+      <label class="check"><input type="checkbox" id="filter-unresolved"> Show unresolved only</label>
+      <label class="check"><input type="checkbox" id="expand-details"> Expand details by default</label>
+    </div>
+    <nav id="tree" aria-label="Spec tree"></nav>
+  </aside>
+  <section id="detail" class="detail"></section>
+</main>
+
+<footer class="footer">
+  <div id="status-counts" class="chips"></div>
+  <div class="footer-actions">
+    <button type="button" id="mark-remaining">Mark remaining as no opinion</button>
+    <button type="button" id="copy-json">Copy JSON</button>
+    <button type="button" id="export-json" class="primary">Export feedback JSON</button>
+    <button type="button" id="reset" class="danger">Reset</button>
+  </div>
+  <p class="hint">Keys: <b>1-5</b> set status, <b>j</b> / <b>k</b> next / previous. Feedback saves in this browser automatically; export the JSON when you are done.</p>
+</footer>
+
+<script>const SPEC_DATA = __SPEC_DATA__;</script>
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * Data and state
+   * ------------------------------------------------------------------ */
+
+  var STORAGE_KEY = "spec-review:" + SPEC_DATA.project + ":" + SPEC_DATA.version;
+  var REVIEWER_KEY = "spec-review:reviewer";
+
+  var DECISIONS = [
+    { key: "need", label: "Need this", symbol: "\u2713", className: "d-need" },
+    { key: "nice", label: "Nice to have", symbol: "\u2605", className: "d-nice" },
+    { key: "later", label: "Later", symbol: "\u23F8", className: "d-later" },
+    { key: "no", label: "Don't need", symbol: "\u2715", className: "d-no" },
+    { key: "discussion", label: "Needs discussion", symbol: "\u26A0", className: "d-discussion" }
+  ];
+  var NO_OPINION = { key: "no_opinion", label: "No opinion", symbol: "\u2013", className: "d-no_opinion" };
+  var DECISION_MAP = {};
+  DECISIONS.forEach(function (decision) { DECISION_MAP[decision.key] = decision; });
+  DECISION_MAP[NO_OPINION.key] = NO_OPINION;
+
+  var areaList = SPEC_DATA.nodes || [];
+  var reviewables = [];
+  areaList.forEach(function (area) {
+    if (area.reviewable) reviewables.push({ area: area, node: area });
+    (area.children || []).forEach(function (child) {
+      if (child.reviewable) reviewables.push({ area: area, node: child });
+    });
+  });
+  var entryById = {};
+  reviewables.forEach(function (entry) { entryById[entry.node.id] = entry; });
+
+  var state = { reviewer: "", items: {} };
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (saved && typeof saved === "object") {
+      state.items = saved.items || {};
+      state.reviewer = saved.reviewer || "";
+    }
+  } catch (error) { /* storage unavailable; keep in-memory state */ }
+  if (!state.reviewer) {
+    try { state.reviewer = localStorage.getItem(REVIEWER_KEY) || ""; } catch (error) {}
+  }
+
+  var selectedId = reviewables.length ? reviewables[0].node.id : null;
+  var collapsedAreas = {};
+  var commentSaveTimer = null;
+
+  /* ------------------------------------------------------------------ *
+   * Small DOM helpers
+   * ------------------------------------------------------------------ */
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function $id(id) { return document.getElementById(id); }
+
+  /* ------------------------------------------------------------------ *
+   * Persistence
+   * ------------------------------------------------------------------ */
+
+  function saveNow() {
+    try {
+      state.reviewer = reviewerInput.value.trim();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(REVIEWER_KEY, state.reviewer);
+    } catch (error) { /* private mode or file restrictions: ignore */ }
+  }
+
+  function scheduleSave() {
+    if (commentSaveTimer) clearTimeout(commentSaveTimer);
+    commentSaveTimer = setTimeout(saveNow, 300);
+  }
+
+  function getItem(id) {
+    if (!state.items[id]) state.items[id] = { decision: "", comment: "" };
+    return state.items[id];
+  }
+
+  function hasDecision(id) {
+    var item = state.items[id];
+    return Boolean(item && item.decision);
+  }
+
+  function hasContent(id) {
+    var item = state.items[id];
+    return Boolean(item && (item.decision || (item.comment || "").trim()));
+  }
+
+  function counts() {
+    var result = {};
+    Object.keys(state.items).forEach(function (id) {
+      var decision = state.items[id] && state.items[id].decision;
+      if (decision) result[decision] = (result[decision] || 0) + 1;
+    });
+    return result;
+  }
+
+  function reviewedCount() {
+    return reviewables.filter(function (entry) { return hasDecision(entry.node.id); }).length;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Rendering: header, counts, tree
+   * ------------------------------------------------------------------ */
+
+  function renderCounts() {
+    var tally = counts();
+    var reviewed = reviewedCount();
+    var total = reviewables.length;
+    $id("progress-text").innerHTML = "<b>" + reviewed + "</b> of " + total + " reviewed";
+    $id("progress-fill").style.width = total ? (reviewed / total) * 100 + "%" : "0%";
+
+    var chipHost = $id("status-counts");
+    chipHost.textContent = "";
+    DECISIONS.concat([NO_OPINION]).forEach(function (decision) {
+      var chip = el("span", "chip");
+      chip.appendChild(el("span", "dot " + decision.className));
+      chip.appendChild(el("span", null, decision.label + " " + (tally[decision.key] || 0)));
+      chipHost.appendChild(chip);
+    });
+  }
+
+  function renderTree() {
+    var host = $id("tree");
+    host.textContent = "";
+    var filterUnresolved = $id("filter-unresolved").checked;
+    var visibleCount = 0;
+
+    areaList.forEach(function (area) {
+      var items = area.reviewable ? [area] : (area.children || []).filter(function (child) { return child.reviewable; });
+      var visible = items.filter(function (node) { return !filterUnresolved || !hasDecision(node.id); });
+      if (!visible.length) return;
+
+      var wrapper = el("div", "tree-area");
+      var row = el("div", "tree-area-row");
+      var caret = el("button", "caret", collapsedAreas[area.id] ? "\u25B8" : "\u25BE");
+      caret.type = "button";
+      caret.setAttribute("aria-label", "Toggle " + area.title);
+      caret.addEventListener("click", function () {
+        collapsedAreas[area.id] = !collapsedAreas[area.id];
+        renderTree();
+      });
+      row.appendChild(caret);
+      row.appendChild(el("span", "area-title", area.title));
+
+      if (!area.reviewable) {
+        var decided = items.filter(function (node) { return hasDecision(node.id); }).length;
+        row.appendChild(el("span", "area-progress", decided + "/" + items.length));
+      }
+      wrapper.appendChild(row);
+
+      if (!collapsedAreas[area.id]) {
+        visible.forEach(function (node) {
+          var button = el("button", "tree-feature" + (node.id === selectedId ? " selected" : ""));
+          button.type = "button";
+          var item = state.items[node.id];
+          button.appendChild(el("span", "dot " + (item && item.decision ? item.decision : "")));
+          button.appendChild(el("span", null, node.title));
+          button.addEventListener("click", function () { select(node.id); });
+          wrapper.appendChild(button);
+          visibleCount += 1;
+        });
+      }
+      host.appendChild(wrapper);
+    });
+
+    if (!visibleCount) {
+      host.appendChild(el("p", "tree-empty", filterUnresolved ? "Everything is reviewed." : "No review items in this build."));
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Rendering: detail panel
+   * ------------------------------------------------------------------ */
+
+  function renderDetail() {
+    var host = $id("detail");
+    host.textContent = "";
+    var entry = selectedId ? entryById[selectedId] : null;
+
+    if (!entry) {
+      host.appendChild(el("p", "placeholder", "Select a feature on the left to review it. Use j / k to move between features."));
+      return;
+    }
+
+    var node = entry.node;
+    var isArea = node.kind === "area" && !node.reviewable;
+
+    host.appendChild(el("div", "crumb", isArea ? "Area overview" : entry.area.title));
+    host.appendChild(el("h2", "node-title", node.title));
+    host.appendChild(el("div", "node-id", node.id));
+    if (node.summary) host.appendChild(el("p", "summary", node.summary));
+
+    if (isArea) {
+      var list = el("ul", "feature-list");
+      (node.children || []).forEach(function (child) {
+        var li = el("li");
+        var link = el("button", "feature-link");
+        link.type = "button";
+        var item = state.items[child.id];
+        link.appendChild(el("span", "dot " + (item && item.decision ? item.decision : "")));
+        link.appendChild(el("span", null, child.title));
+        link.addEventListener("click", function () { select(child.id); });
+        li.appendChild(link);
+        list.appendChild(li);
+      });
+      host.appendChild(list);
+    } else {
+      renderDecisionControls(host, node);
+    }
+
+    if (node.details_html) {
+      var details = document.createElement("details");
+      details.className = "spec-details";
+      if ($id("expand-details").checked) details.open = true;
+      var summary = el("summary", null, "Show details");
+      var body = el("div", "details-body");
+      body.innerHTML = node.details_html;
+      details.appendChild(summary);
+      details.appendChild(body);
+      host.appendChild(details);
+    }
+  }
+
+  function renderDecisionControls(host, node) {
+    var item = getItem(node.id);
+
+    var row = el("div", "decision-row");
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", "Your feedback for " + node.title);
+    DECISIONS.forEach(function (decision, index) {
+      var button = el("button", "decision-btn " + decision.className);
+      button.type = "button";
+      button.appendChild(el("span", "symbol", decision.symbol));
+      button.appendChild(el("span", null, decision.label));
+      button.setAttribute("aria-pressed", String(item.decision === decision.key));
+      button.title = "Shortcut: " + (index + 1);
+      if (item.decision === decision.key) button.classList.add("active");
+      button.addEventListener("click", function () { setDecision(node.id, decision.key); });
+      row.appendChild(button);
+    });
+    host.appendChild(row);
+
+    if (item.decision) {
+      var status = el("p", "status-line");
+      var badge = el("span", "status-badge");
+      badge.appendChild(el("span", "dot " + item.decision));
+      badge.appendChild(el("span", null, "Status: " + (DECISION_MAP[item.decision] || { label: item.decision }).label));
+      status.appendChild(badge);
+      var clear = el("button", "clear-status", "Clear status");
+      clear.type = "button";
+      clear.addEventListener("click", function () {
+        var current = getItem(node.id);
+        current.decision = "";
+        saveNow();
+        renderAll();
+      });
+      status.appendChild(clear);
+      host.appendChild(status);
+    }
+
+    var label = el("label", "comment-label", "Comment");
+    var textarea = el("textarea", "comment-box");
+    textarea.placeholder = "Optional: what should change, why, or what you are unsure about.";
+    textarea.value = item.comment || "";
+    textarea.addEventListener("input", function () {
+      getItem(node.id).comment = textarea.value;
+      scheduleSave();
+    });
+    label.appendChild(textarea);
+    host.appendChild(label);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Interaction
+   * ------------------------------------------------------------------ */
+
+  function renderAll() {
+    renderCounts();
+    renderTree();
+    renderDetail();
+  }
+
+  function select(id) {
+    selectedId = id;
+    renderTree();
+    renderDetail();
+    var selected = document.querySelector(".tree-feature.selected");
+    if (selected) selected.scrollIntoView({ block: "nearest" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function setDecision(id, decisionKey) {
+    getItem(id).decision = decisionKey;
+    saveNow();
+    renderAll();
+  }
+
+  function navIds() {
+    var filterUnresolved = $id("filter-unresolved").checked;
+    return reviewables
+      .filter(function (entry) { return !filterUnresolved || !hasDecision(entry.node.id); })
+      .map(function (entry) { return entry.node.id; });
+  }
+
+  function move(delta) {
+    var ids = navIds();
+    if (!ids.length) return;
+    var index = ids.indexOf(selectedId);
+    if (index === -1) index = delta > 0 ? -1 : ids.length;
+    select(ids[(index + delta + ids.length) % ids.length]);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Export
+   * ------------------------------------------------------------------ */
+
+  function buildExport() {
+    var feedback = {};
+    Object.keys(state.items).forEach(function (id) {
+      var item = state.items[id];
+      if (!item) return;
+      if (!item.decision && !(item.comment || "").trim()) return;
+      feedback[id] = { decision: item.decision || null, comment: item.comment || "" };
+    });
+    var touched = Object.keys(feedback);
+    var unreviewed = reviewables
+      .map(function (entry) { return entry.node.id; })
+      .filter(function (id) { return touched.indexOf(id) === -1; });
+    return {
+      schema: "spec-review-feedback-1",
+      reviewer: reviewerInput.value.trim(),
+      project: SPEC_DATA.project,
+      reviewed_version: SPEC_DATA.version,
+      exported_at: new Date().toISOString(),
+      counts: counts(),
+      feedback: feedback,
+      unreviewed: unreviewed
+    };
+  }
+
+  function slugify(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "anonymous";
+  }
+
+  function dateStamp() {
+    return new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  }
+
+  function download(filename, text) {
+    var blob = new Blob([text], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function copyText(text, onDone) {
+    function fallback() {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (error) { ok = false; }
+      textarea.remove();
+      onDone(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { onDone(true); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function flash(button, message) {
+    var original = button.textContent;
+    button.textContent = message;
+    button.disabled = true;
+    setTimeout(function () {
+      button.textContent = original;
+      button.disabled = false;
+    }, 1500);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Wiring
+   * ------------------------------------------------------------------ */
+
+  var reviewerInput = $id("reviewer-name");
+
+  $id("filter-unresolved").addEventListener("change", renderTree);
+  $id("expand-details").addEventListener("change", renderDetail);
+  reviewerInput.addEventListener("input", scheduleSave);
+
+  $id("mark-remaining").addEventListener("click", function () {
+    var remaining = reviewables.filter(function (entry) { return !hasDecision(entry.node.id); });
+    if (!remaining.length) {
+      alert("Every review item already has a status.");
+      return;
+    }
+    if (!confirm("Mark " + remaining.length + " item(s) without a status as \"No opinion\"?")) return;
+    remaining.forEach(function (entry) {
+      var item = getItem(entry.node.id);
+      item.decision = NO_OPINION.key;
+    });
+    saveNow();
+    renderAll();
+  });
+
+  $id("export-json").addEventListener("click", function (event) {
+    var reviewer = reviewerInput.value.trim();
+    if (!reviewer && !confirm("No reviewer name is set. Export anonymously?")) {
+      reviewerInput.focus();
+      return;
+    }
+    saveNow();
+    var payload = buildExport();
+    download("feedback-" + slugify(reviewer || "anonymous") + "-" + dateStamp() + ".json", JSON.stringify(payload, null, 2));
+    flash(event.currentTarget, "Exported");
+  });
+
+  $id("copy-json").addEventListener("click", function (event) {
+    var button = event.currentTarget;
+    saveNow();
+    copyText(JSON.stringify(buildExport(), null, 2), function (ok) {
+      flash(button, ok ? "Copied" : "Copy failed");
+    });
+  });
+
+  $id("reset").addEventListener("click", function () {
+    if (!confirm("Clear all feedback stored in this browser for this review?")) return;
+    state.items = {};
+    try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
+    saveNow();
+    renderAll();
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.target.closest("input, textarea, select")) return;
+    if (/^[1-5]$/.test(event.key)) {
+      var decision = DECISIONS[Number(event.key) - 1];
+      if (decision && selectedId && entryById[selectedId]) {
+        event.preventDefault();
+        setDecision(selectedId, decision.key);
+      }
+      return;
+    }
+    if (event.key === "j" || event.key === "ArrowDown") { event.preventDefault(); move(1); }
+    else if (event.key === "k" || event.key === "ArrowUp") { event.preventDefault(); move(-1); }
+  });
+
+  window.addEventListener("beforeunload", saveNow);
+
+  /* ------------------------------------------------------------------ *
+   * Init
+   * ------------------------------------------------------------------ */
+
+  document.title = SPEC_DATA.project + " - Spec Review";
+  $id("project-title").textContent = SPEC_DATA.project;
+  if (SPEC_DATA.subtitle) {
+    $id("project-subtitle").textContent = SPEC_DATA.subtitle;
+  } else {
+    $id("project-subtitle").remove();
+  }
+  $id("version-text").textContent = "review " + SPEC_DATA.version;
+  reviewerInput.value = state.reviewer;
+  renderAll();
+})();
+</script>
+</body>
+</html>

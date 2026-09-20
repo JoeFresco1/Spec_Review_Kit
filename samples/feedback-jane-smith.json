@@ -1,0 +1,26 @@
+{
+  "schema": "spec-review-feedback-1",
+  "reviewer": "Jane Smith",
+  "project": "Case Management Platform",
+  "reviewed_version": "93e8c620c1",
+  "counts": { "need": 1, "nice": 1, "later": 1, "discussion": 1 },
+  "feedback": {
+    "routing.assignment": {
+      "decision": "need",
+      "comment": "This needs supervisor override."
+    },
+    "routing.escalation": {
+      "decision": "discussion",
+      "comment": "Need to confirm with operations."
+    },
+    "reporting.dashboard": {
+      "decision": "nice",
+      "comment": "Would like a per-team view."
+    },
+    "reporting.exports": {
+      "decision": "later",
+      "comment": ""
+    }
+  },
+  "unreviewed": ["routing.override"]
+}

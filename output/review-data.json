@@ -1,0 +1,74 @@
+{
+  "schema": "spec-review-data-1",
+  "project": "Case Management Platform",
+  "subtitle": "Stakeholder review draft",
+  "generated_at": "2026-09-18T08:55:25-04:00",
+  "version": "93e8c620c1",
+  "nodes": [
+    {
+      "id": "routing",
+      "title": "Case Routing",
+      "kind": "area",
+      "reviewable": false,
+      "summary": "How incoming cases reach the right employee with the right priority.",
+      "details_html": "",
+      "children": [
+        {
+          "id": "routing.assignment",
+          "title": "Automatic Assignment",
+          "kind": "feature",
+          "reviewable": true,
+          "summary": "Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.",
+          "details_html": "<p>Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.</p><h4>Requirements</h4><ul><li>Employees can be filtered by qualification before assignment.</li><li>Current workload should influence which employee receives a case.</li><li>Cases with tighter SLA targets should be assigned first.</li></ul><h4>Open questions</h4><ul><li>Should assignment consider time zone or shift schedule in the first release?</li></ul>",
+          "children": []
+        },
+        {
+          "id": "routing.override",
+          "title": "Manual Override",
+          "kind": "feature",
+          "reviewable": true,
+          "summary": "Supervisors can reassign any open case at any time.",
+          "details_html": "<p>Supervisors can reassign any open case at any time.</p><h4>Requirements</h4><ul><li>Overrides require a reason.</li><li>The previous assignment stays visible in the case history.</li></ul>",
+          "children": []
+        },
+        {
+          "id": "routing.escalation",
+          "title": "Escalation Rules",
+          "kind": "feature",
+          "reviewable": true,
+          "summary": "Cases that breach or approach their SLA are escalated to the responsible supervisor.",
+          "details_html": "<p>Cases that breach or approach their SLA are escalated to the responsible supervisor.</p><h4>Requirements</h4><ul><li>Warning at 80% of the SLA window.</li><li>Escalation at 100% of the SLA window.</li><li>Escalations notify both the assignee and the supervisor.</li></ul>",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "reporting",
+      "title": "Reporting",
+      "kind": "area",
+      "reviewable": false,
+      "summary": "Operational reporting for supervisors and administrators.",
+      "details_html": "",
+      "children": [
+        {
+          "id": "reporting.dashboard",
+          "title": "Dashboard",
+          "kind": "feature",
+          "reviewable": true,
+          "summary": "A single view of open cases, SLA health, and employee workload.",
+          "details_html": "<p>A single view of open cases, SLA health, and employee workload.</p><h4>Requirements</h4><ul><li>Filter by team, priority, and date range.</li><li>SLA health shows counts for on-track, at-risk, and breached cases.</li></ul>",
+          "children": []
+        },
+        {
+          "id": "reporting.exports",
+          "title": "Scheduled Exports",
+          "kind": "feature",
+          "reviewable": true,
+          "summary": "Automatic CSV exports delivered on a schedule.",
+          "details_html": "<p>Automatic CSV exports delivered on a schedule.</p><h4>Requirements</h4><ul><li>Exports can be scheduled daily or weekly.</li><li>Recipients are configured per export.</li><li>Failed exports retry twice before notifying an administrator.</li></ul>",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
