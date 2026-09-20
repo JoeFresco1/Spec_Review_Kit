@@ -66,6 +66,10 @@
     min-width: 200px;
   }
   .reviewer-field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  button:focus-visible, summary:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
 
   /* ---------- layout ---------- */
   main {
@@ -208,6 +212,7 @@
   .footer button.primary:hover { background: #0b5cad; }
   .footer button.danger:hover { border-color: #cf222e; color: #cf222e; }
   .hint { width: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+  .hint.warning { color: #9a6700; font-weight: 600; }
 
   @media (max-width: 900px) {
     main { grid-template-columns: 1fr; padding: 12px; }
@@ -226,10 +231,10 @@
   <div class="topbar-right">
     <div class="progress">
       <div class="progress-line">
-        <span id="progress-text"></span>
+        <span id="progress-text" aria-live="polite"></span>
         <span id="version-text" class="version"></span>
       </div>
-      <div class="progress-track" role="progressbar" aria-label="Review progress">
+      <div id="progress-track" class="progress-track" role="progressbar" aria-label="Review progress" aria-valuemin="0">
         <div id="progress-fill" class="progress-fill"></div>
       </div>
     </div>
@@ -251,17 +256,17 @@
 </main>
 
 <footer class="footer">
-  <div id="status-counts" class="chips"></div>
+  <div id="status-counts" class="chips" aria-live="polite"></div>
   <div class="footer-actions">
     <button type="button" id="mark-remaining">Mark remaining as no opinion</button>
     <button type="button" id="copy-json">Copy JSON</button>
     <button type="button" id="export-json" class="primary">Export feedback JSON</button>
     <button type="button" id="reset" class="danger">Reset</button>
   </div>
-  <p class="hint">Keys: <b>1-5</b> set status, <b>j</b> / <b>k</b> next / previous. Feedback saves in this browser automatically; export the JSON when you are done.</p>
+  <p id="save-hint" class="hint">Keys: <b>1-5</b> set status, <b>j</b> / <b>k</b> next / previous. Feedback saves in this browser automatically; export the JSON when you are done.</p>
 </footer>
 
-<script>const SPEC_DATA = {"schema":"spec-review-data-1","project":"Case Management Platform","subtitle":"Stakeholder review draft","generated_at":"2026-09-18T08:55:25-04:00","version":"93e8c620c1","nodes":[{"id":"routing","title":"Case Routing","kind":"area","reviewable":false,"summary":"How incoming cases reach the right employee with the right priority.","details_html":"","children":[{"id":"routing.assignment","title":"Automatic Assignment","kind":"feature","reviewable":true,"summary":"Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.","details_html":"<p>Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.<\/p><h4>Requirements<\/h4><ul><li>Employees can be filtered by qualification before assignment.<\/li><li>Current workload should influence which employee receives a case.<\/li><li>Cases with tighter SLA targets should be assigned first.<\/li><\/ul><h4>Open questions<\/h4><ul><li>Should assignment consider time zone or shift schedule in the first release?<\/li><\/ul>","children":[]},{"id":"routing.override","title":"Manual Override","kind":"feature","reviewable":true,"summary":"Supervisors can reassign any open case at any time.","details_html":"<p>Supervisors can reassign any open case at any time.<\/p><h4>Requirements<\/h4><ul><li>Overrides require a reason.<\/li><li>The previous assignment stays visible in the case history.<\/li><\/ul>","children":[]},{"id":"routing.escalation","title":"Escalation Rules","kind":"feature","reviewable":true,"summary":"Cases that breach or approach their SLA are escalated to the responsible supervisor.","details_html":"<p>Cases that breach or approach their SLA are escalated to the responsible supervisor.<\/p><h4>Requirements<\/h4><ul><li>Warning at 80% of the SLA window.<\/li><li>Escalation at 100% of the SLA window.<\/li><li>Escalations notify both the assignee and the supervisor.<\/li><\/ul>","children":[]}]},{"id":"reporting","title":"Reporting","kind":"area","reviewable":false,"summary":"Operational reporting for supervisors and administrators.","details_html":"","children":[{"id":"reporting.dashboard","title":"Dashboard","kind":"feature","reviewable":true,"summary":"A single view of open cases, SLA health, and employee workload.","details_html":"<p>A single view of open cases, SLA health, and employee workload.<\/p><h4>Requirements<\/h4><ul><li>Filter by team, priority, and date range.<\/li><li>SLA health shows counts for on-track, at-risk, and breached cases.<\/li><\/ul>","children":[]},{"id":"reporting.exports","title":"Scheduled Exports","kind":"feature","reviewable":true,"summary":"Automatic CSV exports delivered on a schedule.","details_html":"<p>Automatic CSV exports delivered on a schedule.<\/p><h4>Requirements<\/h4><ul><li>Exports can be scheduled daily or weekly.<\/li><li>Recipients are configured per export.<\/li><li>Failed exports retry twice before notifying an administrator.<\/li><\/ul>","children":[]}]}]};</script>
+<script>const SPEC_DATA = {"schema":"spec-review-data-1","project":"Case Management Platform","subtitle":"Stakeholder review draft","generated_at":"2026-09-20T10:39:38-04:00","version":"93e8c620c1","nodes":[{"id":"routing","title":"Case Routing","kind":"area","reviewable":false,"summary":"How incoming cases reach the right employee with the right priority.","details_html":"","children":[{"id":"routing.assignment","title":"Automatic Assignment","kind":"feature","reviewable":true,"summary":"Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.","details_html":"<p>Cases are automatically assigned to eligible employees based on workload, qualifications, and SLA priority.<\/p><h4>Requirements<\/h4><ul><li>Employees can be filtered by qualification before assignment.<\/li><li>Current workload should influence which employee receives a case.<\/li><li>Cases with tighter SLA targets should be assigned first.<\/li><\/ul><h4>Open questions<\/h4><ul><li>Should assignment consider time zone or shift schedule in the first release?<\/li><\/ul>","children":[]},{"id":"routing.override","title":"Manual Override","kind":"feature","reviewable":true,"summary":"Supervisors can reassign any open case at any time.","details_html":"<p>Supervisors can reassign any open case at any time.<\/p><h4>Requirements<\/h4><ul><li>Overrides require a reason.<\/li><li>The previous assignment stays visible in the case history.<\/li><\/ul>","children":[]},{"id":"routing.escalation","title":"Escalation Rules","kind":"feature","reviewable":true,"summary":"Cases that breach or approach their SLA are escalated to the responsible supervisor.","details_html":"<p>Cases that breach or approach their SLA are escalated to the responsible supervisor.<\/p><h4>Requirements<\/h4><ul><li>Warning at 80% of the SLA window.<\/li><li>Escalation at 100% of the SLA window.<\/li><li>Escalations notify both the assignee and the supervisor.<\/li><\/ul>","children":[]}]},{"id":"reporting","title":"Reporting","kind":"area","reviewable":false,"summary":"Operational reporting for supervisors and administrators.","details_html":"","children":[{"id":"reporting.dashboard","title":"Dashboard","kind":"feature","reviewable":true,"summary":"A single view of open cases, SLA health, and employee workload.","details_html":"<p>A single view of open cases, SLA health, and employee workload.<\/p><h4>Requirements<\/h4><ul><li>Filter by team, priority, and date range.<\/li><li>SLA health shows counts for on-track, at-risk, and breached cases.<\/li><\/ul>","children":[]},{"id":"reporting.exports","title":"Scheduled Exports","kind":"feature","reviewable":true,"summary":"Automatic CSV exports delivered on a schedule.","details_html":"<p>Automatic CSV exports delivered on a schedule.<\/p><h4>Requirements<\/h4><ul><li>Exports can be scheduled daily or weekly.<\/li><li>Recipients are configured per export.<\/li><li>Failed exports retry twice before notifying an administrator.<\/li><\/ul>","children":[]}]}]};</script>
 <script>
 (function () {
   "use strict";
@@ -271,7 +276,6 @@
    * ------------------------------------------------------------------ */
 
   var STORAGE_KEY = "spec-review:" + SPEC_DATA.project + ":" + SPEC_DATA.version;
-  var REVIEWER_KEY = "spec-review:reviewer";
 
   var DECISIONS = [
     { key: "need", label: "Need this", symbol: "\u2713", className: "d-need" },
@@ -296,16 +300,32 @@
   var entryById = {};
   reviewables.forEach(function (entry) { entryById[entry.node.id] = entry; });
 
+  function normalizeItems(rawItems) {
+    var normalized = {};
+    if (!rawItems || typeof rawItems !== "object") return normalized;
+    Object.keys(rawItems).forEach(function (id) {
+      var raw = rawItems[id];
+      if (!entryById[id] || !raw || typeof raw !== "object") return;
+      var decision = typeof raw.decision === "string" && DECISION_MAP[raw.decision] ? raw.decision : "";
+      var comment = typeof raw.comment === "string" ? raw.comment : "";
+      if (decision || comment.trim()) normalized[id] = { decision: decision, comment: comment };
+    });
+    return normalized;
+  }
+
   var state = { reviewer: "", items: {} };
+  var storageAvailable = true;
   try {
+    var storageTestKey = STORAGE_KEY + ":test";
+    localStorage.setItem(storageTestKey, "1");
+    localStorage.removeItem(storageTestKey);
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved && typeof saved === "object") {
-      state.items = saved.items || {};
-      state.reviewer = saved.reviewer || "";
+      state.items = normalizeItems(saved.items);
+      state.reviewer = typeof saved.reviewer === "string" ? saved.reviewer : "";
     }
-  } catch (error) { /* storage unavailable; keep in-memory state */ }
-  if (!state.reviewer) {
-    try { state.reviewer = localStorage.getItem(REVIEWER_KEY) || ""; } catch (error) {}
+  } catch (error) {
+    storageAvailable = false;
   }
 
   var selectedId = reviewables.length ? reviewables[0].node.id : null;
@@ -325,16 +345,36 @@
 
   function $id(id) { return document.getElementById(id); }
 
+  function decisionClass(key) {
+    return key && DECISION_MAP[key] ? DECISION_MAP[key].className : "";
+  }
+
+  function decisionLabel(key) {
+    return key && DECISION_MAP[key] ? DECISION_MAP[key].label : "Not reviewed";
+  }
+
   /* ------------------------------------------------------------------ *
    * Persistence
    * ------------------------------------------------------------------ */
 
   function saveNow() {
+    state.reviewer = reviewerInput.value.trim();
+    if (!storageAvailable) {
+      showStorageWarning();
+      return;
+    }
     try {
-      state.reviewer = reviewerInput.value.trim();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      localStorage.setItem(REVIEWER_KEY, state.reviewer);
-    } catch (error) { /* private mode or file restrictions: ignore */ }
+    } catch (error) {
+      storageAvailable = false;
+      showStorageWarning();
+    }
+  }
+
+  function showStorageWarning() {
+    var hint = $id("save-hint");
+    hint.classList.add("warning");
+    hint.textContent = "Autosave is unavailable in this browser. Export feedback JSON frequently so your work is not lost.";
   }
 
   function scheduleSave() {
@@ -380,6 +420,10 @@
     var total = reviewables.length;
     $id("progress-text").innerHTML = "<b>" + reviewed + "</b> of " + total + " reviewed";
     $id("progress-fill").style.width = total ? (reviewed / total) * 100 + "%" : "0%";
+    var progress = $id("progress-track");
+    progress.setAttribute("aria-valuemax", String(total));
+    progress.setAttribute("aria-valuenow", String(reviewed));
+    progress.setAttribute("aria-valuetext", reviewed + " of " + total + " reviewed");
 
     var chipHost = $id("status-counts");
     chipHost.textContent = "";
@@ -395,18 +439,20 @@
     var host = $id("tree");
     host.textContent = "";
     var filterUnresolved = $id("filter-unresolved").checked;
-    var visibleCount = 0;
+    var visibleAreaCount = 0;
 
     areaList.forEach(function (area) {
       var items = area.reviewable ? [area] : (area.children || []).filter(function (child) { return child.reviewable; });
       var visible = items.filter(function (node) { return !filterUnresolved || !hasDecision(node.id); });
       if (!visible.length) return;
+      visibleAreaCount += 1;
 
       var wrapper = el("div", "tree-area");
       var row = el("div", "tree-area-row");
       var caret = el("button", "caret", collapsedAreas[area.id] ? "\u25B8" : "\u25BE");
       caret.type = "button";
       caret.setAttribute("aria-label", "Toggle " + area.title);
+      caret.setAttribute("aria-expanded", String(!collapsedAreas[area.id]));
       caret.addEventListener("click", function () {
         collapsedAreas[area.id] = !collapsedAreas[area.id];
         renderTree();
@@ -425,17 +471,19 @@
           var button = el("button", "tree-feature" + (node.id === selectedId ? " selected" : ""));
           button.type = "button";
           var item = state.items[node.id];
-          button.appendChild(el("span", "dot " + (item && item.decision ? item.decision : "")));
+          var currentDecision = item && item.decision ? item.decision : "";
+          button.appendChild(el("span", "dot " + decisionClass(currentDecision)));
           button.appendChild(el("span", null, node.title));
+          button.setAttribute("aria-label", node.title + ", " + decisionLabel(currentDecision));
+          if (node.id === selectedId) button.setAttribute("aria-current", "true");
           button.addEventListener("click", function () { select(node.id); });
           wrapper.appendChild(button);
-          visibleCount += 1;
         });
       }
       host.appendChild(wrapper);
     });
 
-    if (!visibleCount) {
+    if (!visibleAreaCount) {
       host.appendChild(el("p", "tree-empty", filterUnresolved ? "Everything is reviewed." : "No review items in this build."));
     }
   }
@@ -469,8 +517,10 @@
         var link = el("button", "feature-link");
         link.type = "button";
         var item = state.items[child.id];
-        link.appendChild(el("span", "dot " + (item && item.decision ? item.decision : "")));
+        var currentDecision = item && item.decision ? item.decision : "";
+        link.appendChild(el("span", "dot " + decisionClass(currentDecision)));
         link.appendChild(el("span", null, child.title));
+        link.setAttribute("aria-label", child.title + ", " + decisionLabel(currentDecision));
         link.addEventListener("click", function () { select(child.id); });
         li.appendChild(link);
         list.appendChild(li);
@@ -504,18 +554,20 @@
       button.type = "button";
       button.appendChild(el("span", "symbol", decision.symbol));
       button.appendChild(el("span", null, decision.label));
+      button.setAttribute("data-decision", decision.key);
       button.setAttribute("aria-pressed", String(item.decision === decision.key));
       button.title = "Shortcut: " + (index + 1);
       if (item.decision === decision.key) button.classList.add("active");
-      button.addEventListener("click", function () { setDecision(node.id, decision.key); });
+      button.addEventListener("click", function () { setDecision(node.id, decision.key, true); });
       row.appendChild(button);
     });
     host.appendChild(row);
 
     if (item.decision) {
       var status = el("p", "status-line");
+      status.setAttribute("aria-live", "polite");
       var badge = el("span", "status-badge");
-      badge.appendChild(el("span", "dot " + item.decision));
+      badge.appendChild(el("span", "dot " + decisionClass(item.decision)));
       badge.appendChild(el("span", null, "Status: " + (DECISION_MAP[item.decision] || { label: item.decision }).label));
       status.appendChild(badge);
       var clear = el("button", "clear-status", "Clear status");
@@ -557,14 +609,21 @@
     renderTree();
     renderDetail();
     var selected = document.querySelector(".tree-feature.selected");
-    if (selected) selected.scrollIntoView({ block: "nearest" });
+    if (selected) {
+      selected.scrollIntoView({ block: "nearest" });
+      selected.focus({ preventScroll: true });
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function setDecision(id, decisionKey) {
+  function setDecision(id, decisionKey, restoreFocus) {
     getItem(id).decision = decisionKey;
     saveNow();
     renderAll();
+    if (restoreFocus) {
+      var button = document.querySelector('.decision-btn[data-decision="' + decisionKey + '"]');
+      if (button) button.focus({ preventScroll: true });
+    }
   }
 
   function navIds() {
@@ -594,10 +653,9 @@
       if (!item.decision && !(item.comment || "").trim()) return;
       feedback[id] = { decision: item.decision || null, comment: item.comment || "" };
     });
-    var touched = Object.keys(feedback);
     var unreviewed = reviewables
       .map(function (entry) { return entry.node.id; })
-      .filter(function (id) { return touched.indexOf(id) === -1; });
+      .filter(function (id) { return !hasDecision(id); });
     return {
       schema: "spec-review-feedback-1",
       reviewer: reviewerInput.value.trim(),
@@ -660,6 +718,13 @@
     }, 1500);
   }
 
+  function confirmReviewer() {
+    if (reviewerInput.value.trim()) return true;
+    if (confirm("No reviewer name is set. Continue anonymously?")) return true;
+    reviewerInput.focus();
+    return false;
+  }
+
   /* ------------------------------------------------------------------ *
    * Wiring
    * ------------------------------------------------------------------ */
@@ -687,10 +752,7 @@
 
   $id("export-json").addEventListener("click", function (event) {
     var reviewer = reviewerInput.value.trim();
-    if (!reviewer && !confirm("No reviewer name is set. Export anonymously?")) {
-      reviewerInput.focus();
-      return;
-    }
+    if (!confirmReviewer()) return;
     saveNow();
     var payload = buildExport();
     download("feedback-" + slugify(reviewer || "anonymous") + "-" + dateStamp() + ".json", JSON.stringify(payload, null, 2));
@@ -699,6 +761,7 @@
 
   $id("copy-json").addEventListener("click", function (event) {
     var button = event.currentTarget;
+    if (!confirmReviewer()) return;
     saveNow();
     copyText(JSON.stringify(buildExport(), null, 2), function (ok) {
       flash(button, ok ? "Copied" : "Copy failed");
@@ -708,6 +771,8 @@
   $id("reset").addEventListener("click", function () {
     if (!confirm("Clear all feedback stored in this browser for this review?")) return;
     state.items = {};
+    state.reviewer = "";
+    reviewerInput.value = "";
     try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
     saveNow();
     renderAll();
@@ -742,6 +807,7 @@
   }
   $id("version-text").textContent = "review " + SPEC_DATA.version;
   reviewerInput.value = state.reviewer;
+  if (!storageAvailable) showStorageWarning();
   renderAll();
 })();
 </script>

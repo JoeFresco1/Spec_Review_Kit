@@ -87,7 +87,7 @@ def slugify(text: str) -> str:
 
 def title_from_filename(path: Path) -> str:
     """Derive a readable title from a file name like `spec-001-case-routing.md`."""
-    stem = re.sub(r"^[0-9]+[-_\s]+", "", path.stem)
+    stem = re.sub(r"^(?:spec[-_\s]+)?[0-9]+[-_\s]+", "", path.stem, flags=re.IGNORECASE)
     cleaned = re.sub(r"[-_]+", " ", stem).strip()
     return cleaned.title() if cleaned else path.stem
 
@@ -317,7 +317,8 @@ def plain_summary(lines: list[str], limit: int = 240) -> str:
             collected.append(stripped[2:].strip())
             break
         collected.append(stripped)
-    text = re.sub(r"[`*_]", "", " ".join(collected))
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", " ".join(collected))
+    text = re.sub(r"[`*_]", "", text)
     text = re.sub(r"\s+", " ", text).strip()
     if len(text) > limit:
         text = text[: limit - 1].rstrip() + "..."

@@ -30,6 +30,9 @@ DECISION_LABELS = {
     "no": "Don't need",
     "no_opinion": "No opinion",
 }
+EXPECTED_DATA_SCHEMA = "spec-review-data-1"
+EXPECTED_FEEDBACK_SCHEMA = "spec-review-feedback-1"
+VALID_DECISIONS = set(DECISION_LABELS)
 
 
 def resolve_path(path_text: str) -> Path:
@@ -45,6 +48,13 @@ def load_review_data(path: Path) -> tuple[dict, list[dict]]:
     area name, title, and full breadcrumb path.
     """
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("review data must be a JSON object")
+    if data.get("schema") != EXPECTED_DATA_SCHEMA:
+        raise ValueError(
+            f"unsupported review data schema: {data.get('schema')!r} "
+            f"(expected {EXPECTED_DATA_SCHEMA!r})"
+        )
     rows: list[dict] = []
 
     def walk(nodes: list[dict], path_titles: list[str]) -> None:
@@ -78,11 +88,59 @@ def load_feedback(folder: Path) -> tuple[list[dict], list[str]]:
         if not isinstance(payload, dict):
             warnings.append(f"{path.name}: skipped (not a JSON object)")
             continue
+        if payload.get("schema") != EXPECTED_FEEDBACK_SCHEMA:
+            warnings.append(
+                f"{path.name}: skipped (unsupported schema {payload.get('schema')!r}; "
+                f"expected {EXPECTED_FEEDBACK_SCHEMA!r})"
+            )
+            continue
+        if not isinstance(payload.get("feedback"), dict):
+            warnings.append(f"{path.name}: skipped ('feedback' must be a JSON object)")
+            continue
         reviewer = str(payload.get("reviewer") or "").strip() or path.stem
         payload["_reviewer"] = reviewer
         payload["_file"] = path.name
         payloads.append(payload)
     return payloads, warnings
+
+
+def validate_feedback(data: dict, payloads: list[dict]) -> list[str]:
+    """Warn about version, project, and decision mismatches without losing data."""
+    warnings: list[str] = []
+    expected_project = str(data.get("project") or "")
+    expected_version = str(data.get("version") or "")
+    for payload in payloads:
+        filename = payload["_file"]
+        project = str(payload.get("project") or "")
+        version = str(payload.get("reviewed_version") or "")
+        if project != expected_project:
+            warnings.append(
+                f"{filename}: project {project or '(missing)'!r} does not match "
+                f"{expected_project or '(missing)'!r}"
+            )
+        if version != expected_version:
+            warnings.append(
+                f"{filename}: reviewed version {version or '(missing)'!r} does not match "
+                f"build version {expected_version or '(missing)'!r}"
+            )
+        for node_id, item in feedback_map(payload).items():
+            decision = item["decision"]
+            if decision and decision not in VALID_DECISIONS:
+                warnings.append(f"{filename}: {node_id!r} has unrecognized decision {decision!r}")
+    return warnings
+
+
+def safe_csv_cell(value: object) -> str:
+    """Prevent spreadsheet programs from interpreting user text as formulas."""
+    text = str(value or "")
+    if text.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+def markdown_text(value: object) -> str:
+    """Keep user-provided text on one safe Markdown line."""
+    return " ".join(str(value or "").splitlines()).replace("|", "\\|")
 
 
 def reviewer_labels(payloads: list[dict]) -> list[str]:
@@ -126,23 +184,33 @@ def write_matrix(path: Path, rows: list[dict], payloads: list[dict], labels: lis
 
     header = ["feature_id", "area", "feature"]
     for label in labels:
-        header.extend([f"{label} decision", f"{label} comment"])
+        header.extend([f"{safe_csv_cell(label)} decision", f"{safe_csv_cell(label)} comment"])
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(header)
         for row in rows:
-            line = [row["id"], row["area"], row["title"]]
+            line = [safe_csv_cell(row["id"]), safe_csv_cell(row["area"]), safe_csv_cell(row["title"])]
             for payload_map in maps:
                 item = payload_map.get(row["id"], {})
-                line.extend([DECISION_LABELS.get(item.get("decision", ""), item.get("decision", "")), item.get("comment", "")])
+                line.extend(
+                    [
+                        safe_csv_cell(DECISION_LABELS.get(item.get("decision", ""), item.get("decision", ""))),
+                        safe_csv_cell(item.get("comment", "")),
+                    ]
+                )
             writer.writerow(line)
         for node_id in unknown_ids:
-            line = [node_id, "(not in this build)", ""]
+            line = [safe_csv_cell(node_id), "(not in this build)", ""]
             for payload_map in maps:
                 item = payload_map.get(node_id, {})
-                line.extend([DECISION_LABELS.get(item.get("decision", ""), item.get("decision", "")), item.get("comment", "")])
+                line.extend(
+                    [
+                        safe_csv_cell(DECISION_LABELS.get(item.get("decision", ""), item.get("decision", ""))),
+                        safe_csv_cell(item.get("comment", "")),
+                    ]
+                )
             writer.writerow(line)
 
 
@@ -174,7 +242,7 @@ def write_digest(path: Path, data: dict, rows: list[dict], payloads: list[dict],
     lines.append("")
     lines.append(f"Generated: {generated}")
     lines.append("")
-    lines.append(f"Reviewers: {', '.join(labels) if labels else 'none'}")
+    lines.append(f"Reviewers: {', '.join(markdown_text(label) for label in labels) if labels else 'none'}")
     lines.append("")
     lines.append(f"Reviewed versions: {', '.join(versions)}")
     lines.append("")
@@ -190,7 +258,7 @@ def write_digest(path: Path, data: dict, rows: list[dict], payloads: list[dict],
         for item in feedback_map(payload).values():
             if item["decision"] in tally:
                 tally[item["decision"]] += 1
-        lines.append(f"| {label} | " + " | ".join(str(tally[key]) for key in DECISION_ORDER) + " |")
+        lines.append(f"| {markdown_text(label)} | " + " | ".join(str(tally[key]) for key in DECISION_ORDER) + " |")
     lines.append("")
 
     for key in DECISION_ORDER:
@@ -204,8 +272,11 @@ def write_digest(path: Path, data: dict, rows: list[dict], payloads: list[dict],
         lines.append(f"## {DECISION_LABELS[key]}")
         lines.append("")
         for entry in show_all:
-            comment = entry["comment"] if entry["comment"] else "(no comment)"
-            lines.append(f"- **{entry['path']}** (`{entry['id']}`) - {entry['label']}: {comment}")
+            comment = markdown_text(entry["comment"]) if entry["comment"] else "(no comment)"
+            lines.append(
+                f"- **{markdown_text(entry['path'])}** (`{markdown_text(entry['id'])}`) - "
+                f"{markdown_text(entry['label'])}: {comment}"
+            )
         lines.append("")
 
     comment_only = [entry for entry in entries if not entry["decision"] and entry["comment"]]
@@ -213,7 +284,22 @@ def write_digest(path: Path, data: dict, rows: list[dict], payloads: list[dict],
         lines.append("## Comments without a status")
         lines.append("")
         for entry in comment_only:
-            lines.append(f"- **{entry['path']}** (`{entry['id']}`) - {entry['label']}: {entry['comment']}")
+            lines.append(
+                f"- **{markdown_text(entry['path'])}** (`{markdown_text(entry['id'])}`) - "
+                f"{markdown_text(entry['label'])}: {markdown_text(entry['comment'])}"
+            )
+        lines.append("")
+
+    invalid = [entry for entry in entries if entry["decision"] and entry["decision"] not in VALID_DECISIONS]
+    if invalid:
+        lines.append("## Unrecognized statuses")
+        lines.append("")
+        for entry in invalid:
+            lines.append(
+                f"- **{markdown_text(entry['path'])}** (`{markdown_text(entry['id'])}`) - "
+                f"{markdown_text(entry['label'])}: `{markdown_text(entry['decision'])}` "
+                f"{markdown_text(entry['comment'])}"
+            )
         lines.append("")
 
     unknown = [entry for entry in entries if entry["id"] not in known_ids]
@@ -221,7 +307,10 @@ def write_digest(path: Path, data: dict, rows: list[dict], payloads: list[dict],
         lines.append("## Feedback for unknown ids")
         lines.append("")
         for entry in unknown:
-            lines.append(f"- `{entry['id']}` - {entry['label']}: {entry['decision']} {entry['comment']}")
+            lines.append(
+                f"- `{markdown_text(entry['id'])}` - {markdown_text(entry['label'])}: "
+                f"{markdown_text(entry['decision'])} {markdown_text(entry['comment'])}"
+            )
         lines.append("")
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -247,8 +336,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: feedback folder not found: {feedback_dir}", file=sys.stderr)
         return 1
 
-    data, rows = load_review_data(data_path)
+    try:
+        data, rows = load_review_data(data_path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"error: could not read review data: {exc}", file=sys.stderr)
+        return 1
     payloads, warnings = load_feedback(feedback_dir)
+    warnings.extend(validate_feedback(data, payloads))
     for warning in warnings:
         print(f"warning: {warning}")
     if not payloads:

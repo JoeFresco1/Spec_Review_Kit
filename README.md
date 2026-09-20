@@ -49,6 +49,7 @@ explicit `{#id}` tags (or keep headings unchanged).
 ```powershell
 python build.py
 python build.py --input my-specs --output dist
+python -m unittest discover -s tests
 ```
 
 Edit `review.yaml` to set the project name and subtitle. The build prints a
@@ -73,6 +74,11 @@ Ask each stakeholder to drop their `feedback-*.json` into `feedback/`, then:
 ```powershell
 python collect.py
 ```
+
+The collector warns when feedback targets a different project or build version,
+rejects unsupported JSON schemas, and surfaces unknown feature ids or statuses
+instead of silently discarding them. CSV cells are protected against accidental
+spreadsheet-formula execution when opened in Excel.
 
 Outputs:
 
@@ -125,5 +131,3 @@ output/                generated files
 Keep V1 boring: no server, no database, no auth, no React, no AI, no Strata
 dependency. If the build needs Strata later, Strata can emit the same
 `review-data.json` shape; this tool only cares about that interchange format.
-
-# Spec_Review_Kit
